@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from threading import Lock
 from typing import Protocol
 
 from real_estate_ranking.schemas import InteractionEvent
@@ -17,6 +18,7 @@ class LocalEventPublisher:
     def __init__(self, path: Path):
         self.path = path
         self.seen = self._load_seen_event_ids()
+        self._lock = Lock()
 
     def _load_seen_event_ids(self) -> set[str]:
         if not self.path.exists():
@@ -34,13 +36,14 @@ class LocalEventPublisher:
         return seen
 
     def publish(self, event: InteractionEvent) -> bool:
-        if event.event_id in self.seen:
-            return False
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(event.record(), separators=(",", ":")) + "\n")
-        self.seen.add(event.event_id)
-        return True
+        with self._lock:
+            if event.event_id in self.seen:
+                return False
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with self.path.open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(event.record(), separators=(",", ":")) + "\n")
+            self.seen.add(event.event_id)
+            return True
 
 
 class AzureEventHubPublisher:

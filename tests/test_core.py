@@ -1,4 +1,5 @@
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -83,6 +84,17 @@ def test_event_idempotency(tmp_path: Path):
         session_id="ss", event_type="click", position=1, exposure_propensity=1)
     assert publisher.publish(event) and not publisher.publish(event)
     assert not LocalEventPublisher(path).publish(event)
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_event_idempotency_is_thread_safe(tmp_path: Path):
+    path = tmp_path / "events.jsonl"
+    publisher = LocalEventPublisher(path)
+    event = InteractionEvent(user_id="u", property_id="p", listing_id="l", search_id="s",
+        session_id="ss", event_type="click", position=1, exposure_propensity=1)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        accepted = list(pool.map(lambda _: publisher.publish(event), range(32)))
+    assert accepted.count(True) == 1
     assert len(path.read_text(encoding="utf-8").splitlines()) == 1
 
 
