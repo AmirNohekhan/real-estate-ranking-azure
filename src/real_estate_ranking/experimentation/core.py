@@ -12,6 +12,10 @@ def assign_variant(user_id: str, experiment_id: str = "ranking_v1") -> str:
 
 
 def analyze_binary(control: np.ndarray, treatment: np.ndarray) -> dict[str, float]:
+    if not len(control) or not len(treatment):
+        raise ValueError("control and treatment samples must both be non-empty")
+    if not np.isin(control, [0, 1]).all() or not np.isin(treatment, [0, 1]).all():
+        raise ValueError("binary experiment outcomes must contain only 0 and 1")
     pc, pt = float(control.mean()), float(treatment.mean())
     se = math.sqrt(pc * (1 - pc) / len(control) + pt * (1 - pt) / len(treatment))
     effect = pt - pc
@@ -25,4 +29,3 @@ def sample_ratio_mismatch(n_control: int, n_treatment: int) -> bool:
         return False
     chi2 = ((n_control - total / 2) ** 2 + (n_treatment - total / 2) ** 2) / (total / 2)
     return chi2 > 10.828  # p < .001, 1 degree of freedom
-

@@ -1,13 +1,20 @@
 import warnings
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 from real_estate_ranking.data.pipeline import (
     generate_properties,
     simulate_listings,
     validate_properties,
 )
 from real_estate_ranking.events.publishers import LocalEventPublisher
-from real_estate_ranking.experimentation.core import assign_variant, sample_ratio_mismatch
+from real_estate_ranking.experimentation.core import (
+    analyze_binary,
+    assign_variant,
+    sample_ratio_mismatch,
+)
 from real_estate_ranking.ranking.metrics import ndcg_at_k
 from real_estate_ranking.retrieval.candidates import recall_at_k
 from real_estate_ranking.schemas import InteractionEvent, SearchCriteria, SearchRequest
@@ -54,6 +61,15 @@ def test_metrics_and_retrieval():
 def test_assignment_stable_and_srm():
     assert assign_variant("user_1") == assign_variant("user_1")
     assert sample_ratio_mismatch(900, 100)
+
+
+def test_binary_analysis_validates_samples():
+    result = analyze_binary(np.array([0, 1]), np.array([1, 1]))
+    assert result["absolute_effect"] == 0.5
+    with pytest.raises(ValueError, match="non-empty"):
+        analyze_binary(np.array([]), np.array([1]))
+    with pytest.raises(ValueError, match="only 0 and 1"):
+        analyze_binary(np.array([0, 2]), np.array([1]))
 
 
 def test_event_idempotency(tmp_path: Path):
