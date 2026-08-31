@@ -15,6 +15,14 @@ class Provenance(StrEnum):
     MODEL_GENERATED = "MODEL_GENERATED"
 
 
+class InteractionType(StrEnum):
+    IMPRESSION = "impression"
+    CLICK = "click"
+    SAVE = "save"
+    TOUR = "tour"
+    CONTACT = "contact"
+
+
 class SearchCriteria(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
@@ -71,7 +79,7 @@ class InteractionEvent(BaseModel):
     listing_id: str
     search_id: str
     session_id: str
-    event_type: str
+    event_type: InteractionType
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     position: int = Field(ge=1)
     experiment_id: str = "ranking_v1"
@@ -83,4 +91,3 @@ class InteractionEvent(BaseModel):
 
     def record(self) -> dict[str, Any]:
         return self.model_dump(mode="json")
-
