@@ -57,10 +57,13 @@ def test_assignment_stable_and_srm():
 
 
 def test_event_idempotency(tmp_path: Path):
-    publisher = LocalEventPublisher(tmp_path / "events.jsonl")
+    path = tmp_path / "events.jsonl"
+    publisher = LocalEventPublisher(path)
     event = InteractionEvent(user_id="u", property_id="p", listing_id="l", search_id="s",
         session_id="ss", event_type="click", position=1, exposure_propensity=1)
     assert publisher.publish(event) and not publisher.publish(event)
+    assert not LocalEventPublisher(path).publish(event)
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 1
 
 
 def test_end_to_end_personalization_and_contract():

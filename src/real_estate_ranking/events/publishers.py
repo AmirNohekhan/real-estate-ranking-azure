@@ -16,7 +16,22 @@ class LocalEventPublisher:
 
     def __init__(self, path: Path):
         self.path = path
-        self.seen: set[str] = set()
+        self.seen = self._load_seen_event_ids()
+
+    def _load_seen_event_ids(self) -> set[str]:
+        if not self.path.exists():
+            return set()
+        seen: set[str] = set()
+        with self.path.open(encoding="utf-8") as stream:
+            for line in stream:
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                event_id = record.get("event_id")
+                if isinstance(event_id, str):
+                    seen.add(event_id)
+        return seen
 
     def publish(self, event: InteractionEvent) -> bool:
         if event.event_id in self.seen:
@@ -51,4 +66,3 @@ class LocalWorkflowQueue:
             self.messages.append({"message_id": message_id, "workflow": workflow,
                                   "property_id": property_id, "user_id": user_id})
         return message_id
-
