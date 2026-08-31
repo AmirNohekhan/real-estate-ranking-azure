@@ -41,4 +41,6 @@ class CandidateRetriever:
 
 
 def recall_at_k(candidates: list[str], relevant: set[str], k: int) -> float:
+    if k <= 0:
+        raise ValueError("k must be positive")
     return len(set(candidates[:k]) & relevant) / len(relevant) if relevant else 0.0

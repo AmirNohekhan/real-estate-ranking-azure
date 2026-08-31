@@ -56,6 +56,10 @@ def test_temporal_split_has_no_future_leakage():
 def test_metrics_and_retrieval():
     assert ndcg_at_k([3, 2, 0], 3) > ndcg_at_k([0, 2, 3], 3)
     assert recall_at_k(["a", "b", "c"], {"a", "c"}, 2) == .5
+    with pytest.raises(ValueError, match="k must be positive"):
+        ndcg_at_k([1], 0)
+    with pytest.raises(ValueError, match="k must be positive"):
+        recall_at_k(["a"], {"a"}, -1)
 
 
 def test_assignment_stable_and_srm():
