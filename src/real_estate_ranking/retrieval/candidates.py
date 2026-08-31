@@ -27,8 +27,9 @@ class CandidateRetriever:
         ids = eligible.property_id
         pop = ids.map(self.popularity).fillna(0).to_numpy(dtype=float)
         pop = np.log1p(pop) / max(np.log1p(pop).max(), 1)
-        user_vector = np.array(
-            [[user.preferred_price, user.preferred_bedrooms, max(1, user.preferred_bedrooms - 1), user.preferred_sqft, user.garage_affinity * 2]]
+        user_vector = pd.DataFrame(
+            [[user.preferred_price, user.preferred_bedrooms, max(1, user.preferred_bedrooms - 1), user.preferred_sqft, user.garage_affinity * 2]],
+            columns=VECTOR_COLS,
         )
         uv = self.scaler.transform(user_vector)[0]
         pv = self.scaler.transform(eligible[VECTOR_COLS])
@@ -41,4 +42,3 @@ class CandidateRetriever:
 
 def recall_at_k(candidates: list[str], relevant: set[str], k: int) -> float:
     return len(set(candidates[:k]) & relevant) / len(relevant) if relevant else 0.0
-

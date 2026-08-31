@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 from real_estate_ranking.data.pipeline import (
@@ -71,3 +72,14 @@ def test_end_to_end_personalization_and_contract():
     assert response.results and [x.rank for x in response.results] == list(range(1, len(response.results)+1))
     assert all(300000 <= x.asking_price <= 1000000 for x in response.results)
     assert response.timings_ms["total"] > 0
+
+
+def test_search_does_not_emit_feature_name_warnings():
+    listings, _ = fixture_data()
+    engine = SearchEngine(listings, generate_users(1))
+    request = SearchRequest.model_validate({"user_id": "user_000000", "search": {
+        "latitude": 39.084, "longitude": -77.1528, "radius_miles": 20,
+        "min_price": 300000, "max_price": 1000000}})
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message="X does not have valid feature names")
+        engine.search(request)
