@@ -18,3 +18,19 @@ def test_event_api_rejects_unknown_event_types():
         "exposure_propensity": 1,
     })
     assert response.status_code == 422
+
+
+def test_internal_errors_do_not_leak_details(monkeypatch):
+    def fail(_request):
+        raise RuntimeError("secret connection string")
+
+    monkeypatch.setattr("real_estate_ranking.serving.api.engine.search", fail)
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post("/v1/search", json={"user_id": "u", "search": {
+        "latitude": 39.084, "longitude": -77.1528, "radius_miles": 20,
+        "min_price": 300000, "max_price": 1000000}})
+    assert response.status_code == 500
+    assert response.json()["error"] == {
+        "code": "INTERNAL_ERROR", "message": "An internal error occurred"
+    }
+    assert "secret" not in response.text

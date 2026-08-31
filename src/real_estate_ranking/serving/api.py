@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -18,11 +19,13 @@ engine = SearchEngine(simulate_listings(properties), generate_users())
 publisher = LocalEventPublisher(Path("data/events/interactions.jsonl"))
 workflows = LocalWorkflowQueue()
 app = FastAPI(title="Personalized Real-Estate Ranking API", version="0.1.0")
+logger = logging.getLogger(__name__)
 
 
 @app.exception_handler(Exception)
 async def structured_error(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=500, content={"error": {"code": "INTERNAL_ERROR", "message": str(exc)},
+    logger.exception("Unhandled API error on %s", request.url.path, exc_info=exc)
+    return JSONResponse(status_code=500, content={"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred"},
                                                   "request_path": request.url.path})
 
 
@@ -53,4 +56,3 @@ def contact(property_id: str, user_id: str) -> dict[str, str]:
     if property_id not in set(engine.listings.property_id):
         raise HTTPException(404, "property not found")
     return {"message_id": workflows.enqueue("contact", property_id, user_id)}
-
