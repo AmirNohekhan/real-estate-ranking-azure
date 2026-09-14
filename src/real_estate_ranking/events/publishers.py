@@ -60,12 +60,16 @@ class AzureEventHubPublisher:
 
 
 class LocalWorkflowQueue:
+    """Idempotent in-memory workflow queue used by local/CI environments."""
+
     def __init__(self) -> None:
         self.messages: list[dict[str, str]] = []
+        self._lock = Lock()
 
     def enqueue(self, workflow: str, property_id: str, user_id: str) -> str:
         message_id = f"{workflow}:{property_id}:{user_id}"
-        if not any(x["message_id"] == message_id for x in self.messages):
-            self.messages.append({"message_id": message_id, "workflow": workflow,
-                                  "property_id": property_id, "user_id": user_id})
+        with self._lock:
+            if not any(x["message_id"] == message_id for x in self.messages):
+                self.messages.append({"message_id": message_id, "workflow": workflow,
+                                      "property_id": property_id, "user_id": user_id})
         return message_id

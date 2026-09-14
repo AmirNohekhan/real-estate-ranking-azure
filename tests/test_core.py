@@ -10,7 +10,7 @@ from real_estate_ranking.data.pipeline import (
     simulate_listings,
     validate_properties,
 )
-from real_estate_ranking.events.publishers import LocalEventPublisher
+from real_estate_ranking.events.publishers import LocalEventPublisher, LocalWorkflowQueue
 from real_estate_ranking.experimentation.core import (
     analyze_binary,
     assign_variant,
@@ -96,6 +96,14 @@ def test_event_idempotency_is_thread_safe(tmp_path: Path):
         accepted = list(pool.map(lambda _: publisher.publish(event), range(32)))
     assert accepted.count(True) == 1
     assert len(path.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_workflow_enqueue_is_thread_safe_and_idempotent():
+    queue = LocalWorkflowQueue()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        message_ids = list(pool.map(lambda _: queue.enqueue("tour", "p1", "u1"), range(32)))
+    assert len(set(message_ids)) == 1
+    assert len(queue.messages) == 1
 
 
 def test_end_to_end_personalization_and_contract():
