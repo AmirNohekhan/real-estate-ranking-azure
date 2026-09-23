@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from real_estate_ranking.serving.api import app
+from real_estate_ranking.serving.api import app, engine
 
 
 def test_health_and_search_api():
@@ -18,6 +18,24 @@ def test_event_api_rejects_unknown_event_types():
         "exposure_propensity": 1,
     })
     assert response.status_code == 422
+
+
+def test_tour_and_contact_endpoints_are_idempotent_and_validate_property():
+    client = TestClient(app)
+    property_id = engine.listings.property_id.iloc[0]
+
+    tour = client.post(f"/v1/properties/{property_id}/tour", params={"user_id": "user_000001"})
+    assert tour.status_code == 202
+    assert tour.json() == client.post(
+        f"/v1/properties/{property_id}/tour", params={"user_id": "user_000001"}
+    ).json()
+
+    contact = client.post(f"/v1/properties/{property_id}/contact", params={"user_id": "user_000001"})
+    assert contact.status_code == 202
+    assert contact.json()["message_id"] != tour.json()["message_id"]
+
+    missing = client.post("/v1/properties/does_not_exist/tour", params={"user_id": "user_000001"})
+    assert missing.status_code == 404
 
 
 def test_internal_errors_do_not_leak_details(monkeypatch):
