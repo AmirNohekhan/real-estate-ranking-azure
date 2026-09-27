@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from real_estate_ranking.data.pipeline import (
@@ -45,14 +45,14 @@ def events(event: InteractionEvent) -> dict[str, object]:
 
 
 @app.post("/v1/properties/{property_id}/tour", status_code=202)
-def tour(property_id: str, user_id: str) -> dict[str, str]:
+def tour(property_id: str, user_id: str = Query(min_length=1)) -> dict[str, str]:
     if property_id not in set(engine.listings.property_id):
         raise HTTPException(404, "property not found")
     return {"message_id": workflows.enqueue("tour", property_id, user_id)}
 
 
 @app.post("/v1/properties/{property_id}/contact", status_code=202)
-def contact(property_id: str, user_id: str) -> dict[str, str]:
+def contact(property_id: str, user_id: str = Query(min_length=1)) -> dict[str, str]:
     if property_id not in set(engine.listings.property_id):
         raise HTTPException(404, "property not found")
     return {"message_id": workflows.enqueue("contact", property_id, user_id)}

@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from real_estate_ranking.serving.api import app
+from real_estate_ranking.serving.api import app, engine
 
 
 def test_health_and_search_api():
@@ -17,6 +17,13 @@ def test_event_api_rejects_unknown_event_types():
         "session_id": "ss", "event_type": "opened_email", "position": 1,
         "exposure_propensity": 1,
     })
+    assert response.status_code == 422
+
+
+def test_tour_rejects_empty_user_id():
+    client = TestClient(app)
+    property_id = str(engine.listings.property_id.iloc[0])
+    response = client.post(f"/v1/properties/{property_id}/tour", params={"user_id": ""})
     assert response.status_code == 422
 
 
