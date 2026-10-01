@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from real_estate_ranking.data.pipeline import (
@@ -16,7 +17,8 @@ from real_estate_ranking.experimentation.core import (
     assign_variant,
     sample_ratio_mismatch,
 )
-from real_estate_ranking.ranking.metrics import ndcg_at_k
+from real_estate_ranking.ranking.metrics import ndcg_at_k, reciprocal_rank
+from real_estate_ranking.reranking.mmr import diversify
 from real_estate_ranking.retrieval.candidates import recall_at_k
 from real_estate_ranking.schemas import InteractionEvent, SearchCriteria, SearchRequest
 from real_estate_ranking.search.geo import hard_filter
@@ -118,3 +120,27 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_reciprocal_rank():
+    assert reciprocal_rank([0, 0, 1]) == pytest.approx(1 / 3)
+    assert reciprocal_rank([2, 0, 1]) == 1.0
+    assert reciprocal_rank([0, 0]) == 0.0
+    assert reciprocal_rank([]) == 0.0
+
+
+def test_diversify_limits_size_and_spreads_property_types():
+    frame = pd.DataFrame(
+        {
+            "ranking_score": [1.0, 0.98, 0.97, 0.5],
+            "property_type": ["condo", "condo", "condo", "house"],
+            "asking_price": [300_000, 300_000, 300_000, 900_000],
+        },
+        index=["a", "b", "c", "d"],
+    )
+    out = diversify(frame, top_k=2, relevance_weight=0.4)
+    assert len(out) == 2
+    assert out.index[0] == "a"
+    assert out.index[1] == "d"
+    assert diversify(frame.iloc[0:0], top_k=2).empty
+    assert len(diversify(frame, top_k=10)) == len(frame)
