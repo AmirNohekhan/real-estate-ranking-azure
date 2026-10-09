@@ -16,7 +16,7 @@ from real_estate_ranking.experimentation.core import (
     assign_variant,
     sample_ratio_mismatch,
 )
-from real_estate_ranking.ranking.metrics import ndcg_at_k
+from real_estate_ranking.ranking.metrics import ndcg_at_k, reciprocal_rank
 from real_estate_ranking.retrieval.candidates import recall_at_k
 from real_estate_ranking.schemas import InteractionEvent, SearchCriteria, SearchRequest
 from real_estate_ranking.search.geo import hard_filter
@@ -118,3 +118,10 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_reciprocal_rank_and_empty_ndcg():
+    assert reciprocal_rank([0, 0, 2]) == pytest.approx(1 / 3)
+    assert reciprocal_rank([1, 0]) == 1.0
+    assert reciprocal_rank([0, 0]) == 0.0
+    assert ndcg_at_k([0, 0, 0], 3) == 0.0
