@@ -118,3 +118,18 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_haversine_known_distances_and_no_nan():
+    import numpy as np
+
+    from real_estate_ranking.search.geo import haversine_miles
+
+    same = haversine_miles(47.6, -122.3, np.array([47.6]), np.array([-122.3]))
+    assert same[0] == 0.0
+    # Seattle -> Portland is roughly 145 miles.
+    sea_pdx = haversine_miles(47.6062, -122.3321, np.array([45.5152]), np.array([-122.6784]))
+    assert 140 < sea_pdx[0] < 150
+    antipodal = haversine_miles(0.0, 0.0, np.array([0.0]), np.array([180.0]))
+    assert np.isfinite(antipodal).all()
+    assert 12_400 < antipodal[0] < 12_450

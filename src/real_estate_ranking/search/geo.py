@@ -11,7 +11,8 @@ def haversine_miles(lat: float, lon: float, lats: np.ndarray, lons: np.ndarray) 
     lat2, lon2 = np.radians(lats), np.radians(lons)
     dlat, dlon = lat2 - lat1, lon2 - lon1
     a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
-    return 2 * EARTH_RADIUS_MILES * np.arcsin(np.sqrt(a))
+    # Clip so floating-point error near antipodal points cannot push arcsin out of domain (NaN).
+    return 2 * EARTH_RADIUS_MILES * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
 
 
 def hard_filter(frame: pd.DataFrame, query: object) -> pd.DataFrame:
