@@ -118,3 +118,32 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_haversine_known_distance_and_zero():
+    from real_estate_ranking.search.geo import haversine_miles
+
+    # New York City to Los Angeles is roughly 2,445 miles.
+    d = haversine_miles(40.7128, -74.0060, np.array([34.0522, 40.7128]), np.array([-118.2437, -74.0060]))
+    assert d[0] == pytest.approx(2445, rel=0.01)
+    assert d[1] == pytest.approx(0, abs=1e-6)
+
+
+def test_diversify_returns_top_k_unique_rows_and_handles_empty():
+    import pandas as pd
+
+    from real_estate_ranking.reranking.mmr import diversify
+
+    frame = pd.DataFrame(
+        {
+            "ranking_score": [0.9, 0.89, 0.5, 0.4],
+            "property_type": ["condo", "condo", "house", "townhouse"],
+            "asking_price": [300_000, 301_000, 650_000, 450_000],
+        },
+        index=["a", "b", "c", "d"],
+    )
+    out = diversify(frame, top_k=3)
+    assert len(out) == 3 and out.index.is_unique
+    assert out.index[0] == "a"
+    assert diversify(frame.iloc[0:0], top_k=3).empty
+    assert len(diversify(frame, top_k=10)) == len(frame)
