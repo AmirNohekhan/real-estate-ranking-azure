@@ -16,7 +16,7 @@ from real_estate_ranking.experimentation.core import (
     assign_variant,
     sample_ratio_mismatch,
 )
-from real_estate_ranking.ranking.metrics import ndcg_at_k
+from real_estate_ranking.ranking.metrics import ndcg_at_k, reciprocal_rank
 from real_estate_ranking.retrieval.candidates import recall_at_k
 from real_estate_ranking.schemas import InteractionEvent, SearchCriteria, SearchRequest
 from real_estate_ranking.search.geo import hard_filter
@@ -61,6 +61,15 @@ def test_metrics_and_retrieval():
         ndcg_at_k([1], 0)
     with pytest.raises(ValueError, match="k must be positive"):
         recall_at_k(["a"], {"a"}, -1)
+
+
+def test_ranking_metric_edge_cases():
+    assert ndcg_at_k([3, 2, 1], 3) == pytest.approx(1.0)
+    assert ndcg_at_k([0, 0, 0], 3) == 0.0
+    assert reciprocal_rank([0, 0, 1]) == pytest.approx(1 / 3)
+    assert reciprocal_rank([1, 0, 0]) == 1.0
+    assert reciprocal_rank([0, 0]) == 0.0
+    assert reciprocal_rank([]) == 0.0
 
 
 def test_assignment_stable_and_srm():
