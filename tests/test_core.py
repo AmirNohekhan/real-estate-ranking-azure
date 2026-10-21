@@ -118,3 +118,12 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_haversine_antipodal_points_are_finite():
+    from real_estate_ranking.search.geo import haversine_miles
+
+    distances = haversine_miles(0.0, 0.0, np.array([0.0, 0.0]), np.array([180.0, 0.0]))
+    assert np.isfinite(distances).all()
+    assert distances[0] == pytest.approx(3.141592653589793 * 3958.7613, rel=1e-6)
+    assert distances[1] == 0.0
