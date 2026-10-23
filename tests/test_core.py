@@ -118,3 +118,15 @@ def test_search_does_not_emit_feature_name_warnings():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", message="X does not have valid feature names")
         engine.search(request)
+
+
+def test_diversify_rejects_invalid_parameters() -> None:
+    import pandas as pd
+
+    from real_estate_ranking.reranking.mmr import diversify
+
+    frame = pd.DataFrame({"ranking_score": [1.0], "property_type": ["house"], "asking_price": [1.0]})
+    with pytest.raises(ValueError, match="top_k"):
+        diversify(frame, top_k=0)
+    with pytest.raises(ValueError, match="relevance_weight"):
+        diversify(frame, top_k=1, relevance_weight=1.5)

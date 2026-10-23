@@ -5,6 +5,10 @@ import pandas as pd
 
 
 def diversify(frame: pd.DataFrame, top_k: int, relevance_weight: float = 0.82) -> pd.DataFrame:
+    if top_k <= 0:
+        raise ValueError("top_k must be positive")
+    if not 0 <= relevance_weight <= 1:
+        raise ValueError("relevance_weight must be in [0, 1]")
     if frame.empty:
         return frame
     pool, selected = frame.copy(), []
